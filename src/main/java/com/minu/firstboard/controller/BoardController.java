@@ -106,7 +106,6 @@ public class BoardController {
     // 게시판 검색
     @GetMapping("/keyword")
     public String search(@RequestParam(name = "keyword") String keyword, Model model) {
-        System.out.println("keyword = " + keyword);
         List<Board> searchResults = boardService.searchBoard(keyword);
         model.addAttribute("list", searchResults != null ? searchResults : Collections.emptyList());
         return "board/list";
