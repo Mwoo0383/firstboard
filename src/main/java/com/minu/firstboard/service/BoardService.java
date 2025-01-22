@@ -2,6 +2,7 @@ package com.minu.firstboard.service;
 
 import com.minu.firstboard.entity.Board;
 import com.minu.firstboard.repository.BoardRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class BoardService {
 
     @Autowired
@@ -52,5 +54,10 @@ public class BoardService {
          if (board != null) {
              boardRepository.delete(board);
          }
+    }
+
+    // 키워드 검색 메서드
+    public List<Board> searchBoard(String keyword) {
+        return boardRepository.searchByKeyword(keyword);
     }
 }

@@ -13,13 +13,16 @@ import java.util.List;
 public class User {
 
     @Id
-    @Column(name = "user_id")
+    @Column(name = "user_id", unique = true)
     private String id;
 
+    @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
     private String email;
 
     // FetchType.EAGER - 두 엔티티의 정보를 같이 가져오는 것

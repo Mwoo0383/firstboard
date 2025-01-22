@@ -170,23 +170,36 @@
                 <th class="viewcnt">조회수</th>
             </tr>
             <tr th:each="board : ${list}">
-                <td th:text="${board.bno}" th:class="no">1</td>
-                <td><a th:href="@{/board/read(bno=${board.bno})}" th:text="${board.title}">Today I'm gonna finish</a></td>
-                <td th:text="${board.user.id}">aaa</td>
-                <td th:text="${#dates.format(board.upDate,'yyyy-MM-dd')}">2020-01-30</td>
-                <td th:text="${board.viewCnt}" th:class="viewcnt">999</td>
+                <!-- board.bno, board.title, board.user.id, board.upDate, board.viewCnt -->
+                <td th:text="${board.bno}" th:class="no"></td>
+                <td><a th:href="@{/board/read(bno=${board.bno})}" th:text="${board.title}"></a></td>
+                <td th:text="${board.user.id}"></td> <!-- User의 id -->
+                <td th:text="${board.upDate.format(T(java.time.format.DateTimeFormatter).ofPattern('yyyy-MM-dd'))}"></td>
+                <td th:text="${board.viewCnt}"></td> <!-- 조회수 -->
             </tr>
-            </c:forEach>
         </table>
         <!-- 페이지네이션 -->
-        <div>
-            <a th:href="@{/board/list(page=${page.number - 1}, size=${page.size})}"
-               th:if="${page.hasPrevious()}">이전</a>
-
+        <div th:if="${page != null}">
+            <div th:if="${page.hasPrevious()}">
+                <!-- 이전 페이지로 이동 -->
+                <a th:href="@{/board/list(page=${page.number - 1})}">이전</a>
+            </div>
             <span th:text="'Page ' + ${page.number + 1} + ' of ' + ${page.totalPages}"></span>
-
-            <a th:href="@{/board/list(page=${page.number + 1}, size=${page.size})}"
-               th:if="${page.hasNext()}">다음</a>
+            <div th:if="${page.hasNext()}">
+                <!-- 다음 페이지로 이동 -->
+                <a th:href="@{/board/list(page=${page.number + 1})}">다음</a>
+            </div>
+        </div>
+        <div th:if="${page == null}">
+            <p></p>
+        </div>
+        <!-- 검색 폼 추가 -->
+        <div class="search-container">
+            <form class="search-form" action="/board/keyword" method="get">
+                <label for="keyword" style="display: none;">검색어 입력</label>
+                <input type="text" id="keyword" name="keyword" class="search-input" placeholder="검색어를 입력하세요" required />
+                <button type="submit" class="search-button">검색</button>
+            </form>
         </div>
         <br>
         <button id="writeBtn" class="btn-write" onclick="location.href='/board/write'"><i class="fa fa-pencil"></i> 글쓰기</button>

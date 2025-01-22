@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -12,8 +12,8 @@ import java.util.Date;
 public class Board {
 
     @Id
-    @GeneratedValue
-    private long bno;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long bno = 1;
 
     private String title;
 
@@ -25,9 +25,9 @@ public class Board {
 
     private long viewCnt;
 
-    private Date inDate;
+    private LocalDate inDate;
 
-    private Date upDate;
+    private LocalDate upDate;
 
     @Override
     public String toString() {
