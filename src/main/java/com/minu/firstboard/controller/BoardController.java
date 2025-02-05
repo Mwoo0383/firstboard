@@ -1,113 +1,103 @@
 package com.minu.firstboard.controller;
 
+import com.minu.firstboard.dto.response.BoardResponse;
 import com.minu.firstboard.entity.Board;
-import com.minu.firstboard.entity.User;
 import com.minu.firstboard.service.BoardService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
-@RequestMapping("/board")
+@RequestMapping("/api/board")
 public class BoardController {
 
-    @Autowired
-    private BoardService boardService;
+    private final BoardService boardService;
 
-    // 게시판 페이지 조회
+    // 게시판 목록 조회 (페이징 포함)
+    @Operation(summary = "게시판 목록 조회", description = "게시판 목록을 페이징하여 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = Page.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     @GetMapping("/list")
-    public String getList(Model model,
-                          @PageableDefault(sort = "bno", direction = Sort.Direction.DESC) Pageable pageable) {
-        // 페이지 정보 생성 및 데이터 조회
+    public ResponseEntity<Page<BoardResponse>> getList(
+            @Parameter(description = "페이지 번호 (1부터 시작)", example = "1")
+            @RequestParam(defaultValue = "1") int page) {
+
+        // 요청된 page가 1보다 작으면 1로 고정 (0을 방지)
+        if (page < 1) {
+            throw new IllegalArgumentException("페이지 번호는 1 이상이어야 합니다.");
+        }
+
+        // 클라이언트에서 page=1을 보내면 서버에서는 이를 0으로 변환해서 처리
+        Pageable pageable = PageRequest.of(page - 1, 5, Sort.by(Sort.Direction.DESC, "bno"));
         Page<Board> boardPage = boardService.getList(pageable);
+        Page<BoardResponse> responsePage = boardPage.map(BoardResponse::new); // DTO 변환
 
-        // 페이지의 데이터와 페이징 정보 전달
-        model.addAttribute("list", boardPage.getContent());
-        model.addAttribute("page", boardPage);
+        // 페이지 번호를 1부터 시작하도록 변환
+        Page<BoardResponse> adjustedResponsePage = new PageImpl<>(
+                responsePage.getContent(),
+                pageable,
+                boardPage.getTotalElements()
+        ) {
+            @Override
+            public int getNumber() {
+                return super.getNumber() + 1; // 페이지 번호에 1을 더해주기
+            }
+        };
 
-        return "board/list";
+        return ResponseEntity.ok(adjustedResponsePage);
     }
 
-    // 특정 게시판 조회
-    @GetMapping("/read")
-    public String read(Long bno, Model model) {
+    // 특정 게시글 조회
+    @GetMapping("/{bno}")
+    public ResponseEntity<Board> read(@PathVariable Long bno) {
         Board board = boardService.read(bno);
-        model.addAttribute("board", board);
-        return "board/read";
+        return ResponseEntity.ok(board);
     }
 
-//    @GetMapping("/list")
-//    public String getList(Model model) {
-//        List<Board> list = boardService.getList();
-//        model.addAttribute("list", list);
-//
-//        return "board/list";
-//    }
-
-    // 게시판 삭제
-    @PostMapping("/remove")
-    public String remove(Long bno) {
+    // 게시글 삭제
+    @DeleteMapping("/{bno}")
+    public ResponseEntity<Void> remove(@PathVariable Long bno) {
         boardService.remove(bno);
-        return "redirect:/board/list";
+        return ResponseEntity.noContent().build();
     }
 
-    // 게시판 작성
-    @GetMapping("/write")
-    public String showWriteForm(Model model) {
-        Board board = new Board();
-        User user = new User();
-        user.setId("aaa");
-        board.setUser(user);
-
-        model.addAttribute("board", board);
-        return "board/write";
-    }
-
+    // 게시글 작성
     @PostMapping("/write")
-    public String write(Board board) {
+    public ResponseEntity<Board> write(@RequestBody Board board) {
         board.setViewCnt(0L);
         board.setInDate(LocalDate.now());
         board.setUpDate(LocalDate.now());
         boardService.write(board);
-
-        return "redirect:/board/list";
+        return ResponseEntity.ok(board);
     }
 
-    // 게시판 수정
-    @GetMapping("/modify")
-    public String modify(Long bno, Model model) {
-        Board board = boardService.read(bno);
-        model.addAttribute("board", board);
-
-        return "board/write";
-    }
-
-    @PostMapping
-    public String modify(Board board) {
+    // 게시글 수정
+    @PutMapping("/{bno}")
+    public ResponseEntity<Board> modify(@PathVariable Long bno, @RequestBody Board board) {
+        board.setBno(bno);
         boardService.modify(board);
-
-        return "redirect:/board/list";
+        return ResponseEntity.ok(board);
     }
 
-    // 게시판 검색
-    @GetMapping("/keyword")
-    public String search(@RequestParam(name = "keyword") String keyword, Model model) {
+    // 게시글 검색
+    @GetMapping("/search")
+    public ResponseEntity<List<Board>> search(@RequestParam(name = "keyword") String keyword) {
         List<Board> searchResults = boardService.searchBoard(keyword);
-        model.addAttribute("list", searchResults != null ? searchResults : Collections.emptyList());
-        return "board/list";
+        return ResponseEntity.ok(searchResults);
     }
 }
