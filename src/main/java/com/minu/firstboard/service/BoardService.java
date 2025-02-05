@@ -1,11 +1,11 @@
 package com.minu.firstboard.service;
 
+import com.minu.firstboard.dto.response.BoardResponse;
 import com.minu.firstboard.entity.Board;
 import com.minu.firstboard.repository.BoardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,8 +18,24 @@ public class BoardService {
     private BoardRepository boardRepository;
 
     // 페이지네이션 메서드
-    public Page<Board> getList(Pageable pageable) {
-        return boardRepository.findAll(pageable);
+    public Page<BoardResponse> getList(int page) {
+        Pageable pageable = PageRequest.of(page - 1, 5, Sort.by(Sort.Direction.DESC, "bno"));
+
+        Page<Board> boardPage = boardRepository.findAll(pageable);
+        Page<BoardResponse> responsePage = boardPage.map(BoardResponse::new);
+
+        // 페이지 번호를 1부터 시작하도록 변환
+        Page<BoardResponse> adjustedResponsePage = new PageImpl<>(
+                responsePage.getContent(),
+                pageable,
+                boardPage.getTotalElements()
+        ) {
+            @Override
+            public int getNumber() {
+                return super.getNumber() + 1; // 페이지 번호에 1을 더해주기
+            }
+        };
+        return adjustedResponsePage;
     }
 
     // 현재 게시물을 가져오는 메서드

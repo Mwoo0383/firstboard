@@ -42,24 +42,9 @@ public class BoardController {
             throw new IllegalArgumentException("페이지 번호는 1 이상이어야 합니다.");
         }
 
-        // 클라이언트에서 page=1을 보내면 서버에서는 이를 0으로 변환해서 처리
-        Pageable pageable = PageRequest.of(page - 1, 5, Sort.by(Sort.Direction.DESC, "bno"));
-        Page<Board> boardPage = boardService.getList(pageable);
-        Page<BoardResponse> responsePage = boardPage.map(BoardResponse::new); // DTO 변환
+        Page<BoardResponse> responsePage = boardService.getList(page);
 
-        // 페이지 번호를 1부터 시작하도록 변환
-        Page<BoardResponse> adjustedResponsePage = new PageImpl<>(
-                responsePage.getContent(),
-                pageable,
-                boardPage.getTotalElements()
-        ) {
-            @Override
-            public int getNumber() {
-                return super.getNumber() + 1; // 페이지 번호에 1을 더해주기
-            }
-        };
-
-        return ResponseEntity.ok(adjustedResponsePage);
+        return ResponseEntity.ok(responsePage);
     }
 
     // 특정 게시글 조회
